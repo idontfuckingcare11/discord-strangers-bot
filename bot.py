@@ -788,8 +788,54 @@ try:
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to delete messages: {e}", ephemeral=True)
 
+    @bot.slash_command(name="del", description="Delete recent messages", guild_ids=[GUILD_ID])
+    async def del_slash(
+        interaction: nextcord.Interaction,
+        count: int = SlashOption(required=True, description="Number of messages to delete (1-100)")
+    ):
+        member = interaction.user if isinstance(interaction.user, nextcord.Member) else interaction.guild.get_member(interaction.user.id)
+        if not member or not _member_has_creator_role(member):
+            await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
+            return
+        if count < 1:
+            await interaction.response.send_message("❌ Provide a positive number.", ephemeral=True)
+            return
+        if count > 100:
+            count = 100
+        bot_member = interaction.guild.me if interaction.guild else None
+        perms = interaction.channel.permissions_for(bot_member) if bot_member else None
+        if not perms or not perms.manage_messages or not perms.read_message_history:
+            await interaction.response.send_message("❌ I need 'Manage Messages' and 'Read Message History' here.", ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            deleted = await interaction.channel.purge(limit=count, check=lambda m: not m.pinned)
+            await interaction.followup.send(f"🧹 Deleted {len(deleted)} messages in this channel.", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Failed to delete messages: {e}", ephemeral=True)
+
     @bot.slash_command(name="worldboss", description="Start a 2-hour world boss timer", guild_ids=[GUILD_ID])
     async def worldboss_slash(interaction: nextcord.Interaction):
+        member = interaction.user if isinstance(interaction.user, nextcord.Member) else interaction.guild.get_member(interaction.user.id)
+        if not member or not _member_has_creator_role(member):
+            await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
+            return
+        now = dt.datetime.now(dt.timezone.utc)
+        end = now + dt.timedelta(hours=2)
+        unix_end = int(end.timestamp())
+        mins = int(((end - now).total_seconds() + 59) // 60)
+        await interaction.response.send_message(f"⏱ World Boss timer started. Starts in {mins} minutes. Ends at <t:{unix_end}:F> (<t:{unix_end}:R>)", ephemeral=True)
+        async def _task():
+            try:
+                await asyncio.sleep(2*60*60)
+                allowed = nextcord.AllowedMentions(everyone=False, roles=False, users=False)
+                await interaction.channel.send(WORLD_BOSS_MESSAGE, allowed_mentions=allowed)
+            except Exception:
+                pass
+        asyncio.create_task(_task())
+
+    @bot.slash_command(name="wb", description="Start a 2-hour world boss timer", guild_ids=[GUILD_ID])
+    async def wb_slash(interaction: nextcord.Interaction):
         member = interaction.user if isinstance(interaction.user, nextcord.Member) else interaction.guild.get_member(interaction.user.id)
         if not member or not _member_has_creator_role(member):
             await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
