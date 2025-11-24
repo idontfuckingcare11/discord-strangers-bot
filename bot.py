@@ -494,6 +494,47 @@ async def nextffa_cmd(ctx: commands.Context):
     except Exception:
         pass
 
+@bot.command(name="worldboss")
+@has_creator_role()
+@commands.guild_only()
+async def worldboss_cmd(ctx: commands.Context):
+    try:
+        now = dt.datetime.now(dt.timezone.utc)
+        end = now + dt.timedelta(hours=2)
+        unix_end = int(end.timestamp())
+        mins = int(((end - now).total_seconds() + 59) // 60)
+        await ctx.send(f"⏱ World Boss timer started. Starts in {mins} minutes. Ends at <t:{unix_end}:F> (<t:{unix_end}:R>)")
+        async def _task():
+            try:
+                await asyncio.sleep(2*60*60)
+                allowed = nextcord.AllowedMentions(everyone=False, roles=False, users=False)
+                await ctx.send(WORLD_BOSS_MESSAGE, allowed_mentions=allowed)
+            except Exception:
+                pass
+        asyncio.create_task(_task())
+    except Exception:
+        pass
+
+@bot.command(name="reloadcmds")
+@has_creator_role()
+@commands.guild_only()
+async def reloadcmds_cmd(ctx: commands.Context):
+    try:
+        synced = await bot.sync_application_commands(guild_id=ctx.guild.id)
+        try:
+            msg = await ctx.send(f"✅ Synced {len(synced) if hasattr(synced,'__len__') else 0} slash command(s).")
+            await asyncio.sleep(5)
+            await msg.delete()
+        except Exception:
+            pass
+    except Exception:
+        try:
+            err = await ctx.send("❌ Failed to sync commands.")
+            await asyncio.sleep(5)
+            await err.delete()
+        except Exception:
+            pass
+
 # --- CREATOR PANEL (buttons) ---
 class LineupPanel(nextcord.ui.View):
     def __init__(self):
