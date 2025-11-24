@@ -820,6 +820,22 @@ try:
                 await interaction.response.send_message("Failed to list commands.", ephemeral=True)
             except Exception:
                 pass
+
+    @bot.slash_command(name="reloadcmds", description="Reload slash commands for this guild", guild_ids=[GUILD_ID])
+    async def reloadcmds_slash(interaction: nextcord.Interaction):
+        member = interaction.user if isinstance(interaction.user, nextcord.Member) else interaction.guild.get_member(interaction.user.id)
+        if not member or not _member_has_creator_role(member):
+            await interaction.response.send_message("❌ You don't have permission to use this command.", ephemeral=True)
+            return
+        try:
+            synced = await bot.sync_application_commands(guild_id=interaction.guild.id)
+            count = (len(synced) if hasattr(synced, "__len__") else 0)
+            await interaction.response.send_message(f"✅ Synced {count} slash command(s).", ephemeral=True)
+        except Exception:
+            try:
+                await interaction.response.send_message("❌ Failed to sync commands.", ephemeral=True)
+            except Exception:
+                pass
 except Exception:
     # If slash support isn't available, prefix commands still work.
     pass
